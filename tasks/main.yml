@@ -1,0 +1,29 @@
+---
+- name: install firewall tools
+  become: true
+  apt:
+    update_cache: no
+    state: present
+    pkg:
+      - iptables
+      - iptables-persistent
+
+- name: generate rules.v4.j2 to /etc/iptables/rules.v4
+  become: true
+  template:
+    src: rules.v4.j2
+    dest: /etc/iptables/rules.v4
+    owner: root
+    group: root
+    mode: 0755
+  notify: 'reload firewall'
+
+- name: generate rules.v6.j2 to /etc/iptables/rules.v6
+  become: true
+  template:
+    src: rules.v6.j2
+    dest: /etc/iptables/rules.v6
+    owner: root
+    group: root
+    mode: 0755
+  notify: 'reload firewall'

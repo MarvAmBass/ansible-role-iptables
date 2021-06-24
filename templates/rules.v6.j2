@@ -1,0 +1,59 @@
+*mangle
+:PREROUTING ACCEPT
+:INPUT ACCEPT
+:FORWARD ACCEPT
+:OUTPUT ACCEPT
+:POSTROUTING ACCEPT
+COMMIT
+
+*nat
+:PREROUTING ACCEPT
+:INPUT ACCEPT
+:OUTPUT ACCEPT
+:POSTROUTING ACCEPT
+COMMIT
+
+*filter
+:INPUT DROP
+-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+:FORWARD DROP
+:OUTPUT ACCEPT
+
+## General Rules:
+
+# Accept all traffic on loopback interface
+-A INPUT -i lo -j ACCEPT
+-A OUTPUT -o lo -j ACCEPT
+
+# Always allow SSH from everywhere
+-A INPUT -p tcp --dport 22 -j ACCEPT
+
+## Host Rules:
+
+{% include './templates/hosts/v6/' + inventory_hostname + '.j2' ignore missing %}
+
+{% if firewall_ipv6_groups is defined %}
+
+## Group Rules:
+
+{% for firewall_ipv6_group in firewall_ipv6_groups %}
+
+{% include './templates/group/v6/' + firewall_ipv6_group + '.j2' ignore missing %}
+
+{% endfor %}
+
+{% if raw_ipv6_rules is defined %}
+
+## RAW Rules:
+
+{% for raw_rule in raw_ipv6_rules %}
+
+{{ raw_rule }}
+
+{% endfor %}
+
+{% endif %}
+
+{% endif %}
+
+COMMIT

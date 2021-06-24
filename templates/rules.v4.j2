@@ -1,0 +1,75 @@
+*mangle
+:PREROUTING ACCEPT
+:INPUT ACCEPT
+:FORWARD ACCEPT
+:OUTPUT ACCEPT
+:POSTROUTING ACCEPT
+COMMIT
+
+*nat
+:PREROUTING ACCEPT
+:INPUT ACCEPT
+:OUTPUT ACCEPT
+:POSTROUTING ACCEPT
+COMMIT
+
+*filter
+:INPUT DROP
+-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+:FORWARD DROP
+:OUTPUT ACCEPT
+:DOCKER-USER -
+
+##
+# Add Custom Rules here
+##
+
+## General Rules:
+
+# Accept all traffic on loopback interface
+-A INPUT -i lo -j ACCEPT
+-A OUTPUT -o lo -j ACCEPT
+
+# Always allow SSH from everywhere
+-A INPUT -p tcp --dport 22 -j ACCEPT
+
+## Host Rules:
+
+{% include './templates/hosts/v4/' + inventory_hostname + '.j2' ignore missing %}
+
+{% if firewall_ipv4_groups is defined %}
+
+## Group Rules:
+
+{% for firewall_ipv4_group in firewall_ipv4_groups %}
+
+{% include './templates/group/v4/' + firewall_ipv4_group + '.j2' ignore missing %}
+
+{% endfor %}
+
+{% endif %}
+
+{% if raw_ipv4_rules is defined %}
+
+## RAW Rules:
+
+{% for raw_rule in raw_ipv4_rules %}
+
+{{ raw_rule }}
+
+{% endfor %}
+
+{% endif %}
+
+## Examples:
+
+# normal input rule which accepts all traffic from single Host
+#-A INPUT -s 192.111.1.100/32 -j ACCEPT
+
+# normal input rule which accepts all SSH traffic from single Host
+#-A INPUT -s 192.111.1.100/32 -p tcp --dport 22 -j ACCEPT
+
+# block ip range to access docker exposed ports
+#-A DOCKER-USER -s 192.111.1.0/24 -i eth0 -j DROP
+
+COMMIT
